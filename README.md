@@ -25,20 +25,21 @@ fluent.create({id:1})  // Initial data can be passed in as an object
   .add("getUser", getUser, "id", "projection") // getUser will be called with id, projection, callback
   .add("getFriends", getFriends, "getUser") // getFriends will be called with result of getUser and a callback
   .add("getMessages", getMessages, "getUser") // will be run parallel to above
-  .run("render", "getMessages", "getFriends") // render function will be called with err, messages, friends
+  .run(render, "getMessages", "getFriends") // render function will be called with err, messages, friends
 
 ```
 
-Here's another example in coffee-script (taking advantage of easy object creation
+Here's another example in coffee-script (taking advantage of easy object creation)
 
 ```coffeescript
 fluent = require("fluent-async")
 fluent.create({id:1})
     .domain() # enable domains support (experimental)
+    .data("projection", {profile:1})
     .add({getUser}, ["id","projection"]) # dependencies can also be supplied as an array
     .add({getFriends}, "getUser")
     .add({getMessages}, "getUser")
-    .run("render", "getMessages", "getFriends")
+    .run(render, "getMessages", "getFriends")
 
 ```
 
