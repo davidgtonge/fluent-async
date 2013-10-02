@@ -1,0 +1,37 @@
+{
+  "name": "fluent-async",
+  "version": "0.0.3",
+  "description": "Fluent interface to Async Auto from Caolan",
+  "main": "./lib",
+  "scripts": {
+    "test": "./node_modules/mocha/bin/mocha",
+    "prepublish": "npm run build",
+    "postpublish": "npm run clean",
+    "build": "coffee -c lib/",
+    "clean": "rm lib/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davidgtonge/fluent-async.git"
+  },
+  "keywords": [
+    "fluent",
+    "async",
+    "auto",
+    "chaining"
+  ],
+  "author": "Dave Tonge",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/davidgtonge/fluent-async/issues"
+  },
+  "dependencies": {
+    "underscore": "~1.5.2",
+    "async": "~0.2.9"
+  },
+  "devDependencies": {
+    "coffee-script": "~1.6.3",
+    "should": "~1.3.0",
+    "mocha": "~1.13.0"
+  }
+}
