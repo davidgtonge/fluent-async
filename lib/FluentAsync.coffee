@@ -6,6 +6,74 @@ once = require "./once"
 functor = (val) ->
   (cb) -> cb(null, val)
 
+processResultsLoose = (cb, err, res, depends) ->
+  if depends.length
+    args = (res[depend] for depend in depends)
+    args.unshift(err)
+    cb.apply this, args
+  else
+    cb err, res
+
+processResultsStrict = (cb, err, res, depends) ->
+  return cb(err) if err
+  if depends.length
+    args = [err]
+    for depend in depends
+      val = res[depend]
+      if val?
+        args.push val
+      else
+        return cb(new Error "Fluent: Strict Mode - Missing result from #{depend}")
+    cb.apply this, args
+  else
+    cb err, res
+
+processResults = (strict) ->
+  if strict then processResultsStrict else processResultsLoose
+
+nodifyLoose = (fn, depends) ->
+  (callback, results) =>
+    args = (results[depend] for depend in depends)
+    args.push(once(callback))
+    fn.apply this, args
+
+nodifyStrict = (fn, depends) ->
+  (callback, results) =>
+    args = []
+    for depend in depends
+      val = results[depend]
+      if val?
+        args.push(val)
+      else
+        return callback(new Error "Fluent: Strict Mode - Missing result from #{depend}")
+    args.push(once(callback))
+    fn.apply this, args
+
+nodify = (strict, fn, depends) ->
+  if strict
+    nodifyStrict(fn, depends)
+  else
+    nodifyLoose(fn, depends)
+
+parseOptsStrict = (opts, cb) ->
+  diff = _.chain(opts)
+    .filter(_.isArray)
+    .flatten()
+    .filter(_.isString)
+    .unique()
+    .difference(_.keys(opts))
+    .value()
+  if diff.length
+    cb(new Error("Fluent:Strict - Missing dependencies: #{diff.join(",")}"))
+    [{}, ->]
+  else
+    [opts, cb]
+
+parseOptsLoose = (opts, cb) -> [opts, cb]
+
+parseOpts = (strict) ->
+  if strict then parseOptsStrict else parseOptsLoose
+
 
 module.exports = class FluentAsync
 
@@ -14,11 +82,8 @@ module.exports = class FluentAsync
     for key, val of initial
       @data key, val
 
-  domain: ->
-    @d = domain.create()
-    @d.on "error", (e) ->
-      throw e
-
+  strict: ->
+    @isStrict = true
     this
 
   push: (key, val) ->
@@ -32,18 +97,6 @@ module.exports = class FluentAsync
     @push key, functor(val)
     this
 
-  process: (cb) ->
-    if @d
-      @d.bind(cb)
-    else
-      cb
-
-  nodify: (fn, depends) ->
-    (callback, results) =>
-      args = (results[depend] for depend in depends)
-      args.push(@process once(callback))
-      fn.apply this, args
-
   add: (name, fn, depends...) ->
     if _.isObject(name)
       _name = _.keys(name)[0]
@@ -53,34 +106,37 @@ module.exports = class FluentAsync
     unless _.isString(name) and _.isFunction(fn)
       throw new Error("must provide a name and a function")
     depends = _.flatten depends
-    fn = @nodify fn, depends
+    fn = nodify @isStrict, fn, depends
     if depends.length
       deps = [].concat(depends)
       deps.push fn
       @opts[name] = deps
     else
       @opts[name] = fn
-
     this
-
-  processResults: (cb, err, res, depends) ->
-    if depends.length
-      args = (res[depend] for depend in depends)
-      args.unshift(err)
-      cb.apply this, args
-    else
-      cb err, res
-
 
   run: (callback, depends...) ->
     callback ?= ->
-    if @d
-      @d.run =>
-        async.auto @opts, (err, res) =>
-          @d.dispose()
-          @processResults callback, err, res, depends
-    else
-      async.auto @opts, (err, res) =>
-        @processResults callback, err, res, depends
-
+    handleResults = processResults(@isStrict)
+    handleOpts = parseOpts(@isStrict)
+    async.auto.apply async, handleOpts @opts, (err, res) ->
+      handleResults callback, err, res, depends
     this
+
+  generate: (depends...) ->
+    _opts = _.clone @opts
+    handleResults = processResults(@isStrict)
+    handleOpts = parseOpts(@isStrict)
+
+    (data, callback) ->
+      unless callback
+        callback = data
+        data = {}
+      opts = _.clone(_opts)
+      for key, val of data
+        opts[key] = functor(val)
+      async.auto.apply async, handleOpts opts, (err, res) ->
+        handleResults callback, err, res, depends
+
+
+FluentAsync::then = FluentAsync::add
