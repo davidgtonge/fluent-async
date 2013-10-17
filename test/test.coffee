@@ -98,7 +98,7 @@ describe "works with data", ->
     .run(done)
 
 
-describe "callback safety", ->
+describe "callback safety in strict mode", ->
   it "ensures callbacks can only be called once", (done) ->
     test2 = (num, cb) ->
       cb.should.be.a.Function
@@ -106,6 +106,7 @@ describe "callback safety", ->
       ( -> cb()).should.not.throw()
       ( -> cb()).should.throw()
     fluent.create()
+      .strict()
       .add({test2},"test")
       .data("test", 123)
       .run(done)
@@ -134,9 +135,10 @@ describe "can generate async functions", ->
 
     fn = fluent.create()
       .add({b})
-      .generate("b","string")
+      .expects("b", "string")
+      .generate("string")
 
-    fn {string:"test"}, (err, number, string) ->
+    fn "test", (err, number, string) ->
       number.should.equal(3)
       string.should.equal("test")
       done(err)
@@ -149,15 +151,16 @@ describe "can generate async functions", ->
 
     fn = fluent.create()
     .add({b})
-    .generate("b","string")
+    .expects("b", "string")
+    .generate("string")
 
-    fn {string:"test"}, (err, number, string) ->
+    fn "test", (err, number, string) ->
       number.should.equal(3)
       string.should.equal("test")
-    fn {string:"test2"}, (err, number, string) ->
+    fn "test2", (err, number, string) ->
       number.should.equal(3)
       string.should.equal("test2")
-    fn {string:"test3"}, (err, number, string) ->
+    fn "test3", (err, number, string) ->
       number.should.equal(3)
       string.should.equal("test3")
       done()
@@ -168,11 +171,13 @@ describe "can generate async functions", ->
         cb(null, 3)
       , 1
 
-    instance = fluent.create().add({b})
+    instance = fn = fluent.create()
+      .add({b})
+      .expects("b", "string")
 
-    fn = instance.generate("b","string")
+    fn = instance.generate("string")
 
-    fn {string:"test"}, (err, number, string) ->
+    fn "test", (err, number, string) ->
       number.should.equal(3)
       string.should.equal("test")
 
@@ -180,10 +185,10 @@ describe "can generate async functions", ->
     instance.opts.b = 5
     ok _.isNumber instance.opts.b
 
-    fn {string:"test2"}, (err, number, string) ->
+    fn "test2", (err, number, string) ->
       number.should.equal(3)
       string.should.equal("test2")
-    fn {string:"test3"}, (err, number, string) ->
+    fn "test3", (err, number, string) ->
       number.should.equal(3)
       string.should.equal("test3")
       done()
@@ -194,18 +199,20 @@ describe "can generate async functions", ->
         cb(null, 3)
       , 1
 
-    instance = fluent.create().add({b})
+    instance = fluent.create()
+      .add({b})
+      .expects("b","string")
 
-    fn = instance.generate("b","string")
+    fn = instance.generate("string")
 
-    fn {string:"test"}, (err, number, string) ->
+    fn "test", (err, number, string) ->
       number.should.equal(3)
       string.should.equal("test")
 
     fn (err, number, string) ->
       number.should.equal(3)
       ok not string
-    fn {string:"test3"}, (err, number, string) ->
+    fn "test3", (err, number, string) ->
       number.should.equal(3)
       string.should.equal("test3")
       done()

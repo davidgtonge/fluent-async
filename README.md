@@ -43,9 +43,6 @@ fluent.create({id:1})
 
 ```
 
-### Domains
-
-I've added this in - experimental for now, still requires more testing
 
 ### Ensuring callbacks are only called once
 
@@ -53,26 +50,26 @@ Some of the harder to find bugs that I've encountered using node is when you tri
 This is normally due to an error in your code path, but it often ends up having weird side effects and might
 not always be noticed.
 
-To help avoid these bugs, this library will throw an error if you attempt to call one of the supplied callbacks
-more than once.
+To help avoid these bugs, you can enable strict mode and this library will throw an error if you attempt to
+call one of the supplied callbacks more than once.
 
 ### Tests
 
-There are some initial Mocha tests, more will be added later.
+There is a set of Mocha unit tests. Run `npm test` to see the results
 
 ### API
 
-## `.create(data)`
+#### `.create(data)`
 
 This method creates a new Fluent-Async instance. You can optionally pass in data to the method.
 Any data supplied will be added to the instance and will be available as dependencies.
 
 
-## `.data(key, val)`
+#### `.data(key, val)`
 
 This is another way of adding static data to the instance.
 
-## `.add(name, fn, dependencies...)` or `.add({name:fn}, dependencies...)`
+#### `.add(name, fn, dependencies...)` or `.add({name:fn}, dependencies...)`
 
 This method is where you can add your async functions and their dependencies.
 Dependencies can be supplied as either an array or a list of arguments. Dependencies are optional.
@@ -90,7 +87,7 @@ And so on, e.g. with 2 dependencies:
 `.add({"fn":fn}, "dep1", "dep2")`
 
 
-## `.strict()`
+#### `.strict()`
 
 This will enable *strict* mode for the instance. This means that:
 
@@ -103,21 +100,33 @@ This will enable *strict* mode for the instance. This means that:
 I would recommend running the library with `strict` enabled as it should help you reason better about your async calls.
 If its reasonable for some of your async calls to return null or undefined then leave strict mode off.
 
-## `.run(callback, deps...)`
+#### `.run(callback, deps...)`
 
 This method starts running the async calls straight away. The callback supplied to this method will be called
 when all the methods added are complete, or if there is any error.
 If you supply dependencies to this method, then the callback will be called with the results of the defined
 dependencies.
 
-## `.generate(deps...)`
+#### `.expects(args...)` or `.output(args...)`
+
+This method works with the `generate` method. It allows you to define which of the results you want to be passed
+to your final callback.
+
+#### `.generate(expected...)`
 
 This method produces a function that can be called repeatedly - no data is leaked between runs. This means that you
 can define your async function path on startup and use it again and again without constantly redefining it.
-The signature of the method produced by this function is `function(data, callback){}`. The data is optional and if
-only one argument is supplied then the library assumes that it is a callback.
 
-Here is an example using some standard nodejs modules:
+You can also specify the names of any of the arguemnts that will be supplied to the generated function. This allows
+functions produced by this method to work well with other node code, without the need for wrapping functions.
+
+The signature of the method produced by this function is `function(data..., callback){}`.
+In strict mode the number of data arguments must be equal to the number of expected arguments.
+If no expected arguments are supplied, then the resulting function can be called with just a single callback as its
+argument.
+
+
+Here is an example with some mongodb queries:
 
 ```coffeescript
 # Requires (db is a mongoskin instance)
@@ -148,18 +157,81 @@ getAll = fluent.create()
   .add({getFriends}, "getUser", "projection")
   .add({getMessages}, "getUser")
   .add({merge}, "getUser", "getFriends", "getMessages")
-  .generate("merge")
+  .expects("merge")
+  .generate("id")
 
 # Here's an example express route showing how we can re-use the generated function
 getUserRequest = (req, res) ->
-  getAll {id:req.params.id}, (err, user) ->
+  getAll req.params.id, (err, user) ->
     if err
       res.send 500
     else
       res.json user
+
 ```
 
 The nice thing with the above code is that we only have to check for errors in a single place.
+Also we've not had to make any special wrapping functions. Our async functions have pure business logic,
+there is no configuration specific to our async library in our actual functions.
+
+Compare this to how the code would like using straight `async.auto` below.
+With this version I have to write custom wrapping code around the functions to get access to any
+initial data and access to the results of any of the produced functions. There is now a mix of
+business logic and implementation logic in my functions. There is also more wrapped functions
+that are generated at each pass of the function, resulting in slower code.
+
+
+```coffeescript
+
+# Requires (db is a mongoskin instance)
+async = require "async"
+db = require "./db"
+
+# Async functions are defined outside of any scope
+getUser = (projection, id) ->
+  (callback) ->
+    db.users.findById id, projection, callback
+
+
+getFriends = (user, projection, callback) ->
+  (projection) ->
+    (callback, results) ->
+      db.users.findItems {email:$in:results.getUser.profile.friends}, projection, callback
+
+getMessages = (callback, results) ->
+  db.messages.findItems {userId:results.getUser._id}, callback
+
+# Synchronous operations can be defined like this
+merge = (callback, results) ->
+  user = results.getUser
+  user.friends = results.getFriends
+  user.messages = results.getMessages
+  callback null, user
+
+getAll = (id, callback) ->
+  projection = {profile:1}
+  async.auto
+    getUser:getUser(projection, id)
+    getFriends: ["getUser", getFriends(projection)]
+    getMessages: ["getUser", getMessages]
+    merge: ["getUser","getMessages", "getFriends", merge]
+  , (err, results) ->
+    if err then return callback(err)
+    callback null, results.merge
+
+
+
+
+# Here's an example express route showing how we can re-use the generated function
+getUserRequest = (req, res) ->
+  getAll req.params.id, (err, user) ->
+    if err
+      res.send 500
+    else
+      res.json user
+
+
+```
 
 
 

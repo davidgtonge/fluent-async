@@ -34,7 +34,7 @@ processResults = (strict) ->
 nodifyLoose = (fn, depends) ->
   (callback, results) =>
     args = (results[depend] for depend in depends)
-    args.push(once(callback))
+    args.push(callback)
     fn.apply this, args
 
 nodifyStrict = (fn, depends) ->
@@ -123,20 +123,26 @@ module.exports = class FluentAsync
       handleResults callback, err, res, depends
     this
 
-  generate: (depends...) ->
-    _opts = _.clone @opts
-    handleResults = processResults(@isStrict)
-    handleOpts = parseOpts(@isStrict)
+  expects: (args...) ->
+    @finalArgs = args
+    this
 
-    (data, callback) ->
-      unless callback
-        callback = data
-        data = {}
+  generate: (expected...) ->
+    _opts = _.clone @opts
+    isStrict = @isStrict
+    handleResults = processResults(isStrict)
+    handleOpts = parseOpts(isStrict)
+    depends = _.clone(@finalArgs) ? []
+
+    (data..., callback) ->
       opts = _.clone(_opts)
-      for key, val of data
-        opts[key] = functor(val)
+      if isStrict and (expected.length isnt data.length)
+        return callback(new Error("Incorrect number of arguments supplied"))
+      for val, index in data
+        opts[expected[index]] = functor(val)
       async.auto.apply async, handleOpts opts, (err, res) ->
         handleResults callback, err, res, depends
 
 
 FluentAsync::then = FluentAsync::add
+FluentAsync::output = FluentAsync::expects
