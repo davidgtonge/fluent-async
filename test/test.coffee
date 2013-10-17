@@ -275,7 +275,7 @@ describe "has a strict mode", ->
 
     fluent.create({a:null})
       .strict()
-      .add({b}, "a")
+      .async({b}, "a")
       .run(cb)
 
   it "handles false values", (done) ->
@@ -309,3 +309,73 @@ describe "has a strict mode", ->
       .strict()
       .add({b}, "a", "d")
       .run(cb)
+
+describe "sync functions", ->
+  it "runs without error", (done) ->
+
+    test2 = (num) ->  num.should.equal(123)
+    fluent.create({test:123})
+      .strict()
+      .addSync({test2}, "test")
+      .run(done)
+
+  it "catches sync errors", (done) ->
+
+    test2 = (num) ->
+      num.should.equal(123)
+      badVariable
+
+    fluent.create({test:123})
+      .strict()
+      .addSync({test2}, "test")
+      .run (err) ->
+        err.should.be.a.Error
+        done()
+
+  it "gets sync results", (done) ->
+
+    test2 = (num) ->
+      num.should.equal(123)
+      num + 1
+
+    fn = fluent.create({test:123})
+      .strict()
+      .sync({test2}, "test")
+      .expects("test2")
+      .generate()
+
+    fn (err, test2) ->
+      test2.should.equal(124)
+      done(err)
+
+  it "runs sync functions async", (done) ->
+
+    called = false
+    called2 = false
+
+    # This fn is made async
+    test2 = (num) ->
+      num.should.equal(123)
+      called = true
+      num + 1
+
+    # This fn invoices the callback synchrnously
+    test3 = (num, cb) ->
+      called2 = true
+      cb()
+
+    fn = fluent.create({test:123})
+      .strict()
+      .sync({test2}, "test")
+      .async({test3}, "test")
+      .expects("test2")
+      .generate()
+
+    fn (err, test2) ->
+      test2.should.equal(124)
+      ok called
+      ok called2
+      done(err)
+
+    ok not called
+    ok called2

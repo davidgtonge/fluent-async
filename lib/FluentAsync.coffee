@@ -2,6 +2,7 @@ async = require "async"
 _ = require "underscore"
 domain = require "domain"
 once = require "./once"
+makeAsync = require "./makeAsync"
 
 functor = (val) ->
   (cb) -> cb(null, val)
@@ -74,6 +75,17 @@ parseOptsLoose = (opts, cb) -> [opts, cb]
 parseOpts = (strict) ->
   if strict then parseOptsStrict else parseOptsLoose
 
+normalizeAddArgs = (name, fn, depends) ->
+  if _.isObject(name)
+    _name = _.keys(name)[0]
+    if fn then depends = [fn].concat(depends)
+    fn = name[_name]
+    name = _name
+  unless _.isString(name) and _.isFunction(fn)
+    throw new Error("must provide a name and a function")
+  depends = _.flatten depends
+  [name, fn, depends]
+
 
 module.exports = class FluentAsync
 
@@ -98,14 +110,9 @@ module.exports = class FluentAsync
     this
 
   add: (name, fn, depends...) ->
-    if _.isObject(name)
-      _name = _.keys(name)[0]
-      if fn then depends = [fn].concat(depends)
-      fn = name[_name]
-      name = _name
-    unless _.isString(name) and _.isFunction(fn)
-      throw new Error("must provide a name and a function")
-    depends = _.flatten depends
+    @_add.apply @, normalizeAddArgs(name, fn, depends)
+
+  _add: (name, fn, depends) ->
     fn = nodify @isStrict, fn, depends
     if depends.length
       deps = [].concat(depends)
@@ -114,6 +121,11 @@ module.exports = class FluentAsync
     else
       @opts[name] = fn
     this
+
+  addSync: (name, fn, depends...) ->
+    args = normalizeAddArgs(name, fn, depends)
+    args[1] = makeAsync(args[1])
+    @_add.apply @, args
 
   run: (callback, depends...) ->
     callback ?= ->
@@ -144,5 +156,6 @@ module.exports = class FluentAsync
         handleResults callback, err, res, depends
 
 
-FluentAsync::then = FluentAsync::add
+FluentAsync::sync = FluentAsync::addSync
+FluentAsync::then = FluentAsync::async = FluentAsync::add
 FluentAsync::output = FluentAsync::expects

@@ -22,9 +22,9 @@ Here's an example
 fluent = require("fluent-async")
 fluent.create({id:1})  // Initial data can be passed in as an object
   .data("projection", {profile:1}) // Further data can be added via the data method
-  .add("getUser", getUser, "id", "projection") // getUser will be called with id, projection, callback
-  .add("getFriends", getFriends, "getUser") // getFriends will be called with result of getUser and a callback
-  .add("getMessages", getMessages, "getUser") // will be run parallel to above
+  .async("getUser", getUser, "id", "projection") // getUser will be called with id, projection, callback
+  .async("getFriends", getFriends, "getUser") // getFriends will be called with result of getUser and a callback
+  .async("getMessages", getMessages, "getUser") // will be run parallel to above
   .run(render, "getMessages", "getFriends") // render function will be called with err, messages, friends
 
 ```
@@ -34,11 +34,10 @@ Here's another example in coffee-script (taking advantage of easy object creatio
 ```coffeescript
 fluent = require("fluent-async")
 fluent.create({id:1})
-    .domain() # enable domains support (experimental)
     .data("projection", {profile:1})
-    .add({getUser}, ["id","projection"]) # dependencies can also be supplied as an array
-    .add({getFriends}, "getUser")
-    .add({getMessages}, "getUser")
+    .async({getUser}, ["id","projection"]) # dependencies can also be supplied as an array
+    .async({getFriends}, "getUser")
+    .async({getMessages}, "getUser")
     .run(render, "getMessages", "getFriends")
 
 ```
@@ -69,7 +68,7 @@ Any data supplied will be added to the instance and will be available as depende
 
 This is another way of adding static data to the instance.
 
-#### `.add(name, fn, dependencies...)` or `.add({name:fn}, dependencies...)`
+#### `.async(name, fn, dependencies...)` or `.async({name:fn}, dependencies...)` - alised to `add()`
 
 This method is where you can add your async functions and their dependencies.
 Dependencies can be supplied as either an array or a list of arguments. Dependencies are optional.
@@ -85,6 +84,18 @@ And so on, e.g. with 2 dependencies:
 
 `.add("fn", fn, "dep1", "dep2")` is the same as `.add("fn", fn, ["dep1", "dep2"])` is the same as
 `.add({"fn":fn}, "dep1", "dep2")`
+
+#### `.sync(name, fn, dependencies...)`
+
+This method works the same as adding async functions, except that the function supplied must be synchronous.
+For example:
+
+```coffeescript
+syncFn = (a) -> a * 10
+fluent.create({b:10}).sync({a}, "b").generate("a")
+````
+Internally the function is run within a try / catch block, this ensures that any errors are caught and passed up the callback chain.
+The function is also run using `setImmediate` ensuring that the event loop is not blocked by running many synchonous functions.
 
 
 #### `.strict()`

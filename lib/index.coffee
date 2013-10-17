@@ -3,8 +3,9 @@
 # optionally use errors for flow control
 
 FluentAsync = require "./FluentAsync"
+makeAsync = require "./makeAsync"
 
 create = (data) ->
   new FluentAsync data
 
-module.exports = {FluentAsync, create}
+module.exports = {FluentAsync, create, makeAsync}
