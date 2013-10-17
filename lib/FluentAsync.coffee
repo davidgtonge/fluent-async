@@ -135,7 +135,7 @@ module.exports = class FluentAsync
       handleResults callback, err, res, depends
     this
 
-  expects: (args...) ->
+  output: (args...) ->
     @finalArgs = args
     this
 
@@ -156,6 +156,7 @@ module.exports = class FluentAsync
         handleResults callback, err, res, depends
 
 
+FluentAsync::results = FluentAsync::output
 FluentAsync::sync = FluentAsync::addSync
 FluentAsync::then = FluentAsync::async = FluentAsync::add
-FluentAsync::output = FluentAsync::expects
+

@@ -135,7 +135,7 @@ describe "can generate async functions", ->
 
     fn = fluent.create()
       .add({b})
-      .expects("b", "string")
+      .output("b", "string")
       .generate("string")
 
     fn "test", (err, number, string) ->
@@ -151,7 +151,7 @@ describe "can generate async functions", ->
 
     fn = fluent.create()
     .add({b})
-    .expects("b", "string")
+    .output("b", "string")
     .generate("string")
 
     fn "test", (err, number, string) ->
@@ -173,7 +173,7 @@ describe "can generate async functions", ->
 
     instance = fn = fluent.create()
       .add({b})
-      .expects("b", "string")
+      .output("b", "string")
 
     fn = instance.generate("string")
 
@@ -201,7 +201,7 @@ describe "can generate async functions", ->
 
     instance = fluent.create()
       .add({b})
-      .expects("b","string")
+      .output("b","string")
 
     fn = instance.generate("string")
 
@@ -341,7 +341,7 @@ describe "sync functions", ->
     fn = fluent.create({test:123})
       .strict()
       .sync({test2}, "test")
-      .expects("test2")
+      .output("test2")
       .generate()
 
     fn (err, test2) ->
@@ -368,7 +368,7 @@ describe "sync functions", ->
       .strict()
       .sync({test2}, "test")
       .async({test3}, "test")
-      .expects("test2")
+      .output("test2")
       .generate()
 
     fn (err, test2) ->
