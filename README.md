@@ -136,6 +136,12 @@ In strict mode the number of data arguments must be equal to the number of expec
 If no expected arguments are supplied, then the resulting function can be called with just a single callback as its
 argument.
 
+#### `.wait()` or `.wait(depends...)`
+
+This method ensures that any further methods wait for all the previous methods to be completed.
+This can be useful if a method doesn't depend on the data from another method, but should only be completed
+if that method has been completed. Optionally dependencies can be supplied to this method. If none are supplied
+then we assume that all previous operations are dependencies.
 
 Here is an example with some mongodb queries:
 
