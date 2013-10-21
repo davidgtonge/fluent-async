@@ -379,3 +379,41 @@ describe "sync functions", ->
 
     ok not called
     ok called2
+
+describe "implements a wait method", ->
+  it "waits in the chain", (done) ->
+
+    t4called = false
+    t5called = false
+
+    test2 = (num) ->
+      num.should.equal(123)
+      num + 1
+
+    test4 = (num, callback) ->
+      t4called = true
+      setTimeout ->
+        callback(null, true)
+        ok not t5called
+      , 50
+    test5 = (num) ->
+      arguments.length.should.equal 1
+      num.should.equal 123
+      t5called = true
+
+
+    instance = fluent.create({test:123})
+      .strict()
+      .sync({test2}, "test")
+      .sync({test3:test2}, "test")
+      .add({test4}, "test3")
+      .wait()
+      .sync({test5}, "test")
+      .output("test5")
+
+    fn = instance.generate()
+
+    instance.opts.test5.length.should.equal 5
+    instance.opts.test5[0].should.equal "test"
+
+    fn(done)

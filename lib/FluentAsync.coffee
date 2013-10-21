@@ -91,6 +91,7 @@ module.exports = class FluentAsync
 
   constructor: (initial = {}) ->
     @opts = {}
+    @waiting = []
     for key, val of initial
       @data key, val
 
@@ -115,11 +116,17 @@ module.exports = class FluentAsync
   _add: (name, fn, depends) ->
     fn = nodify @isStrict, fn, depends
     if depends.length
-      deps = [].concat(depends)
+      deps = _.union depends, @waiting
       deps.push fn
       @opts[name] = deps
     else
       @opts[name] = fn
+    this
+
+  wait: (depends...) ->
+    # needs to rather add dependencies to any future additions
+    depends = _.keys(@opts) unless depends.length
+    @waiting = @waiting.concat(depends)
     this
 
   addSync: (name, fn, depends...) ->
