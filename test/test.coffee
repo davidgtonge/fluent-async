@@ -417,3 +417,25 @@ describe "implements a wait method", ->
     instance.opts.test5[0].should.equal "test"
 
     fn(done)
+
+describe "max time option", ->
+  it "correctly implements max time on async fn", (done) ->
+
+    test2 =  ->
+    fluent.create({test:123})
+    .strict()
+    .maxTime(100)
+    .add({test2}, "test")
+    .run (err) ->
+        ok err
+        err.should.be.a.Error
+        done()
+
+  it "correctly implements max time on async fn that happens in correct time", (done) ->
+
+    test2 = (a, cb)  -> cb(null, 10)
+    fluent.create({test:123})
+    .strict()
+    .maxTime(100)
+    .add({test2}, "test")
+    .run(done)

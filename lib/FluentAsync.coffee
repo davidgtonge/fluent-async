@@ -3,6 +3,7 @@ _ = require "underscore"
 domain = require "domain"
 once = require "./once"
 makeAsync = require "./makeAsync"
+debug = require("debug")("fluent")
 
 functor = (val) ->
   (cb) -> cb(null, val)
@@ -24,6 +25,7 @@ processResultsStrict = (cb, err, res, depends) ->
       if val?
         args.push val
       else
+        debug "Strict Mode - Missing result from #{depend}"
         return cb(new Error "Fluent: Strict Mode - Missing result from #{depend}")
     cb.apply this, args
   else
@@ -38,7 +40,7 @@ nodifyLoose = (fn, depends) ->
     args.push(callback)
     fn.apply this, args
 
-nodifyStrict = (fn, depends) ->
+nodifyStrict = (fn, depends, delay, name, log) ->
   (callback, results) =>
     args = []
     for depend in depends
@@ -46,13 +48,16 @@ nodifyStrict = (fn, depends) ->
       if val?
         args.push(val)
       else
+        debug "Strict Mode - Missing result from #{depend}"
         return callback(new Error "Fluent: Strict Mode - Missing result from #{depend}")
-    args.push(once(callback))
+
+    args.push(once(callback, delay, name, log))
+    debug "Running #{name}"
     fn.apply this, args
 
-nodify = (strict, fn, depends) ->
+nodify = (strict, fn, depends, delay, name, log) ->
   if strict
-    nodifyStrict(fn, depends)
+    nodifyStrict(fn, depends, delay, name, log)
   else
     nodifyLoose(fn, depends)
 
@@ -65,6 +70,7 @@ parseOptsStrict = (opts, cb) ->
     .difference(_.keys(opts))
     .value()
   if diff.length
+    debug "Strict Mode - Missing dependencies: #{diff.join(",")}"
     cb(new Error("Fluent:Strict - Missing dependencies: #{diff.join(",")}"))
     [{}, ->]
   else
@@ -91,6 +97,7 @@ module.exports = class FluentAsync
 
   constructor: (initial = {}) ->
     @opts = {}
+    @isLog = true
     @waiting = []
     for key, val of initial
       @data key, val
@@ -114,13 +121,17 @@ module.exports = class FluentAsync
     @_add.apply @, normalizeAddArgs(name, fn, depends)
 
   _add: (name, fn, depends) ->
-    fn = nodify @isStrict, fn, depends
+    fn = nodify @isStrict, fn, depends, @delay, name, @isLog
     if depends.length
       deps = _.union depends, @waiting
       deps.push fn
       @opts[name] = deps
     else
       @opts[name] = fn
+    this
+
+  maxTime: (@delay) ->
+    throw new Error("Fluent Async: Must be in strict mode to have maxTime") unless @isStrict
     this
 
   wait: (depends...) ->
@@ -156,6 +167,7 @@ module.exports = class FluentAsync
     (data..., callback) ->
       opts = _.clone(_opts)
       if isStrict and (expected.length isnt data.length)
+        debug "Incorrect number of arguments supplied"
         return callback(new Error("Incorrect number of arguments supplied"))
       for val, index in data
         opts[expected[index]] = functor(val)

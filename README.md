@@ -56,6 +56,11 @@ call one of the supplied callbacks more than once.
 
 There is a set of Mocha unit tests. Run `npm test` to see the results
 
+### Debugging
+
+Fluent-Async uses (debug)[https://github.com/visionmedia/debug] to log info and error messages.
+Just run your program with the environment variable `DEBUG=fluent` to see the output.
+
 ### API
 
 #### `.create(data)`
@@ -110,6 +115,11 @@ This will enable *strict* mode for the instance. This means that:
 
 I would recommend running the library with `strict` enabled as it should help you reason better about your async calls.
 If its reasonable for some of your async calls to return null or undefined then leave strict mode off.
+
+#### `.maxTime(ms)`
+
+If you set this option then an error will be fired on the callback if a function doesn't complete in the time given
+Time must be given in milliseconds and this option will only work in strict mode.
 
 #### `.run(callback, deps...)`
 
