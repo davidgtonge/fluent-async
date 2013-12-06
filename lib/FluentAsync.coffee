@@ -53,7 +53,10 @@ nodifyStrict = (fn, depends, delay, name, log) ->
 
     args.push(once(callback, delay, name, log))
     debug "Running #{name}"
-    fn.apply this, args
+    try
+      fn.apply this, args
+    catch e
+      callback(e)
 
 nodify = (strict, fn, depends, delay, name, log) ->
   if strict

@@ -310,6 +310,20 @@ describe "has a strict mode", ->
       .add({b}, "a", "d")
       .run(cb)
 
+  it "catches async errors", (done) ->
+
+    test2 = (num, callback) ->
+      num.should.equal(123)
+      badVariable()
+      callback null
+
+    fluent.create({test:123})
+    .strict()
+    .add({test2}, "test")
+    .run (err) ->
+      err.should.be.a.Error
+      done()
+
 describe "sync functions", ->
   it "runs without error", (done) ->
 
