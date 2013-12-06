@@ -1,6 +1,6 @@
 module.exports = (fn, context) ->
   (args..., callback) ->
-    setImmediate ->
+    process.nextTick ->
       try
         result = fn.apply context, args
         callback null, result

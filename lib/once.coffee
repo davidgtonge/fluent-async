@@ -20,4 +20,7 @@ module.exports = (fn, delay, name = "Fluent Async Function", log) ->
       return throw new Error "callback called more than once from #{name}"
     called = true
     debug "Callback for #{name}"
-    fn.apply this, arguments
+    try
+      fn.apply this, arguments
+    catch e
+      fn(e)
