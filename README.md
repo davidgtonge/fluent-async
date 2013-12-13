@@ -171,10 +171,10 @@ getMessages = (user, callback) ->
   db.messages.findItems {userId:user._id}, callback
 
 # Synchronous operations can be defined like this
-merge = (user, friends, messages, callback) ->
+merge = (user, friends, messages) ->
   user.friends = friends
   user.messages = messages
-  callback null, user
+  user
 
 # Now we create the function that wraps all these calls together
 getAll = fluent.create()
@@ -183,7 +183,7 @@ getAll = fluent.create()
   .add({getUser}, "id","projection")
   .add({getFriends}, "getUser", "projection")
   .add({getMessages}, "getUser")
-  .add({merge}, "getUser", "getFriends", "getMessages")
+  .sync({merge}, "getUser", "getFriends", "getMessages")
   .expects("merge")
   .generate("id")
 

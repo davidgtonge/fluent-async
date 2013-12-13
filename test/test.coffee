@@ -432,6 +432,42 @@ describe "implements a wait method", ->
 
     fn(done)
 
+  it "waits when no other dependencies", (done) ->
+
+    t4called = false
+    t5called = false
+
+    test2 = (num) ->
+      num.should.equal(123)
+      num + 1
+
+    test4 = (num, callback) ->
+      t4called = true
+      setTimeout ->
+        callback(null, true)
+        ok not t5called
+      , 50
+    test5 = ->
+      arguments.length.should.equal 0
+      t5called = true
+
+
+    instance = fluent.create({test:123})
+    .strict()
+    .sync({test2}, "test")
+    .sync({test3:test2}, "test")
+    .add({test4}, "test3")
+    .wait()
+    .sync({test5})
+    .output("test5")
+
+    fn = instance.generate()
+
+    instance.opts.test5.length.should.equal 5
+    instance.opts.test5[0].should.equal "test"
+
+    fn(done)
+
 describe "max time option", ->
   it "correctly implements max time on async fn", (done) ->
 

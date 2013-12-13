@@ -125,7 +125,7 @@ module.exports = class FluentAsync
 
   _add: (name, fn, depends) ->
     fn = nodify @isStrict, fn, depends, @delay, name, @isLog
-    if depends.length
+    if depends.length or @waiting.length
       deps = _.union depends, @waiting
       deps.push fn
       @opts[name] = deps
