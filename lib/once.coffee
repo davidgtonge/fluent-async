@@ -26,6 +26,7 @@ module.exports = (fn, delay, name = "Fluent Async Function", log) ->
         err.message = "at method #{name} in fluent chain: #{err.message}"
       else if _.isString(err)
         err = "Error: at method #{name} in fluent chain: #{err}"
+      debug(err.toString())
       fn(err)
     else
       fn.apply this, arguments
