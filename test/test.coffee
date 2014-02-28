@@ -324,6 +324,33 @@ describe "has a strict mode", ->
       err.should.be.a.Error
       done()
 
+
+  it "adds the function name to async errors", (done) ->
+    test2 = (num, callback) ->
+      num.should.equal(123)
+      callback new Error("teset")
+
+    fluent.create({test:123})
+    .strict()
+    .add({test2}, "test")
+    .run (err) ->
+        equal err.toString(), "Error: at method test2 in fluent chain: teset"
+        err.should.be.a.Error
+        done()
+
+  it "adds the function name to async string errors", (done) ->
+    test2 = (num, callback) ->
+      num.should.equal(123)
+      callback "teset"
+
+    fluent.create({test:123})
+    .strict()
+    .add({test2}, "test")
+    .run (err) ->
+        equal err.toString(), "Error: at method test2 in fluent chain: teset"
+        err.should.be.a.Error
+        done()
+
 describe "sync functions", ->
   it "runs without error", (done) ->
 
@@ -343,6 +370,20 @@ describe "sync functions", ->
       .strict()
       .addSync({test2}, "test")
       .run (err) ->
+        err.should.be.a.Error
+        done()
+
+  it "adds the funcion anme to sync errors", (done) ->
+
+    test2 = (num) ->
+      num.should.equal(123)
+      badVariable
+
+    fluent.create({test:123})
+    .strict()
+    .addSync({test2}, "test")
+    .run (err) ->
+        equal err.toString(), "ReferenceError: at method test2 in fluent chain: badVariable is not defined"
         err.should.be.a.Error
         done()
 
