@@ -2,5 +2,5 @@
 --ui bdd
 --growl
 --bail
---compilers coffee:coffee-script
+--compilers coffee:coffee-script/register
 --timeout 20000

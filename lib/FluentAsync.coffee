@@ -52,6 +52,8 @@ nodifyStrict = (fn, depends, delay, name, log) ->
         return callback(new Error "Fluent: Strict Mode - Missing result from #{depend}")
 
     args.push(once(callback, delay, name, log))
+    if args.length isnt fn.length
+      debug("Inconsistent Arity: #{name} - #{args.length} supplied, #{fn.length} expected")
     debug "Running #{name}"
     try
       fn.apply this, args
