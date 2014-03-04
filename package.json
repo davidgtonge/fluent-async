@@ -1,6 +1,6 @@
 {
   "name": "fluent-async",
-  "version": "0.6.2",
+  "version": "0.6.4",
   "description": "Fluent interface to Async Auto from Caolan",
   "main": "./lib",
   "scripts": {
