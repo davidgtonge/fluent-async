@@ -121,6 +121,15 @@ If its reasonable for some of your async calls to return null or undefined then 
 If you set this option then an error will be fired on the callback if a function doesn't complete in the time given
 Time must be given in milliseconds and this option will only work in strict mode.
 
+#### `.name(name)`
+
+This namespaces the debug output to fluent:name
+
+#### `log()`
+
+This logs the result of last added function (using debug).
+The result is JSON stringified so it should be possible to log deeply nested data as well as simple structures.
+
 #### `.run(callback, deps...)`
 
 This method starts running the async calls straight away. The callback supplied to this method will be called
@@ -261,5 +270,10 @@ getUserRequest = (req, res) ->
 ```
 
 
+
+#### Mocking in Tests
+
+Often only the main Fluent chain will be exposed in a modules exports and not all the individual functions
+that make up the chain.
 
 

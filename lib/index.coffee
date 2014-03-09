@@ -3,9 +3,24 @@
 # optionally use errors for flow control
 
 FluentAsync = require "./FluentAsync"
-makeAsync = require "./makeAsync"
+FluentAsyncWithMocks = require "./FluentAsyncWithMocks"
 
 create = (data) ->
   new FluentAsync data
 
-module.exports = {FluentAsync, create, makeAsync}
+createWithMocks = (mocks) ->
+  (data) ->
+    instance = new FluentAsyncWithMocks data
+    instance._mocks = mocks
+    instance
+
+output =
+  FluentAsync: FluentAsync
+  makeAsync: require "./makeAsync"
+  create: create
+  enableMocks: (mocks = {}) ->
+    output.create = createWithMocks(mocks)
+
+
+module.exports = output
+

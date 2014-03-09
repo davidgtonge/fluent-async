@@ -109,8 +109,8 @@ module.exports = class FluentAsync
     for key, val of initial
       @data key, val
 
-  name: (name) ->
-    @_log = require("debug")("fluent:#{name}")
+  name: (@_name) ->
+    @_log = require("debug")("fluent:#{@_name}")
     this
 
   strict: ->

@@ -3,6 +3,10 @@ assert = require "assert"
 {ok, equal} = assert
 _ = require "underscore"
 fluent = require "../lib"
+fluent.enableMocks
+  maxTimeTest:
+    test2:[null, 10]
+
 
 describe "parses options", ->
   it "throws an error if nothing added", ->
