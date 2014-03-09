@@ -139,6 +139,18 @@ module.exports = class FluentAsync
       @opts[name] = deps
     else
       @opts[name] = fn
+    @_lastAdded = name
+    this
+
+  log: ->
+    lastName = @_lastAdded
+    fn = (callback, results) =>
+      try
+        @_log "Result for #{lastName}: #{JSON.stringify(results[lastName])}"
+        callback()
+      catch e
+        callback(e)
+    @opts["fluent.log.#{lastName}"] = [lastName, fn]
     this
 
   maxTime: (@delay) ->

@@ -529,5 +529,5 @@ describe "max time option", ->
     .name("maxTimeTest")
     .strict()
     .maxTime(100)
-    .add({test2}, "test")
+    .add({test2}, "test").log()
     .run(done)
