@@ -40,34 +40,34 @@ nodifyLoose = (fn, depends) ->
     args.push(callback)
     fn.apply this, args
 
-nodifyStrict = (fn, depends, delay, name, log) ->
+nodifyStrict = (fn, depends, delay, name, logger) ->
   (callback, results) =>
     args = []
     for depend in depends
       val = results[depend]
       if val?
-        args.push(kval)
+        args.push(val)
       else
-        debug "Strict Mode - Missing result from #{depend}"
+        logger "Strict Mode - Missing result from #{depend}"
         return callback(new Error "Fluent: Strict Mode - Missing result from #{depend}")
 
-    args.push(once(callback, delay, name, log))
+    args.push(once(callback, delay, name, logger))
     len = fn._length ? fn.length
     if args.length isnt len
-      debug("Inconsistent Arity: #{name} - #{args.length} supplied, #{len} expected")
-    debug "Running #{name}"
+      logger("Inconsistent Arity: #{name} - #{args.length} supplied, #{len} expected")
+    logger "Running #{name}"
     try
       fn.apply this, args
     catch e
       callback(e)
 
-nodify = (strict, fn, depends, delay, name, log) ->
+nodify = (strict, fn, depends, delay, name, logger) ->
   if strict
-    nodifyStrict(fn, depends, delay, name, log)
+    nodifyStrict(fn, depends, delay, name, logger)
   else
     nodifyLoose(fn, depends)
 
-parseOptsStrict = (opts, cb) ->
+parseOptsStrict = (opts, cb, logger) ->
   diff = _.chain(opts)
     .filter(_.isArray)
     .flatten()
@@ -76,8 +76,9 @@ parseOptsStrict = (opts, cb) ->
     .difference(_.keys(opts))
     .value()
   if diff.length
-    debug "Strict Mode - Missing dependencies: #{diff.join(",")}"
-    cb(new Error("Fluent:Strict - Missing dependencies: #{diff.join(",")}"))
+    errMsg = "Strict Mode - Missing dependencies: #{diff.join(",")}"
+    logger(errMsg)
+    cb(new Error errMsg)
     [{}, ->]
   else
     [opts, cb]
@@ -103,10 +104,14 @@ module.exports = class FluentAsync
 
   constructor: (initial = {}) ->
     @opts = {}
-    @isLog = true
     @waiting = []
+    @_log = debug
     for key, val of initial
       @data key, val
+
+  name: (name) ->
+    @_log = require("debug")("fluent:#{name}")
+    this
 
   strict: ->
     @isStrict = true
@@ -127,7 +132,7 @@ module.exports = class FluentAsync
     @_add.apply @, normalizeAddArgs(name, fn, depends)
 
   _add: (name, fn, depends) ->
-    fn = nodify @isStrict, fn, depends, @delay, name, @isLog
+    fn = nodify @isStrict, fn, depends, @delay, name, @_log
     if depends.length or @waiting.length
       deps = _.union depends, @waiting
       deps.push fn
@@ -155,8 +160,8 @@ module.exports = class FluentAsync
     callback ?= ->
     handleResults = processResults(@isStrict)
     handleOpts = parseOpts(@isStrict)
-    async.auto.apply async, handleOpts @opts, (err, res) ->
-      handleResults callback, err, res, depends
+    finalCallback = (err, res) -> handleResults(callback, err, res, depends)
+    async.auto.apply async, handleOpts(@opts, finalCallback, @_log)
     this
 
   output: (args...) ->
@@ -166,6 +171,7 @@ module.exports = class FluentAsync
   generate: (expected...) ->
     _opts = _.clone @opts
     isStrict = @isStrict
+    log = @_log
     handleResults = processResults(isStrict)
     handleOpts = parseOpts(isStrict)
     depends = _.clone(@finalArgs) ? []
@@ -173,7 +179,7 @@ module.exports = class FluentAsync
     (data..., callback) ->
       opts = _.clone(_opts)
       if isStrict and (expected.length isnt data.length)
-        debug "Incorrect number of arguments supplied"
+        log "Incorrect number of arguments supplied"
         return callback(new Error("Incorrect number of arguments supplied"))
       for val, index in data
         opts[expected[index]] = functor(val)

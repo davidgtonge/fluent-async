@@ -526,6 +526,7 @@ describe "max time option", ->
 
     test2 = (a, cb)  -> cb(null, 10)
     fluent.create({test:123})
+    .name("maxTimeTest")
     .strict()
     .maxTime(100)
     .add({test2}, "test")
