@@ -95,7 +95,7 @@ normalizeAddArgs = (name, fn, depends) ->
     fn = name[_name]
     name = _name
   unless _.isString(name) and _.isFunction(fn)
-    throw new Error("must provide a name and a function")
+    throw new Error("Fluent: Missing name: #{name} or function: #{fn?.toString()}")
   depends = _.flatten depends
   [name, fn, depends]
 
@@ -119,7 +119,7 @@ module.exports = class FluentAsync
 
   push: (key, val) ->
     if @opts[key]
-      throw new Error ("either data or a function with this name has already been added")
+      throw new Error ("Fluent: Either data or a function with this name has already been added")
     else
       @opts[key] = val
       this
