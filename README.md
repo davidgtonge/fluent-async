@@ -7,7 +7,7 @@ I love Async.auto. Its a great utility that allows you to express your asynchron
 a simple data structure. The library works out which calls can be made in paralell, which in series,
 which calls depend on other calls, as well as halting on any errors.
 
-I heve a few issues with the API however:
+I have a few issues with the API however:
 
  - Functions need to be supplied in a non node-standard way, e.g. ` function(callback, data) {}`
  I'd much rather have `function(data, callback){}`
@@ -161,6 +161,22 @@ This method ensures that any further methods wait for all the previous methods t
 This can be useful if a method doesn't depend on the data from another method, but should only be completed
 if that method has been completed. Optionally dependencies can be supplied to this method. If none are supplied
 then we assume that all previous operations are dependencies.
+
+#### `.if(fn, depends...)`
+
+A conditional function can be passed into the chain via the `if` method.
+Any methods in the chain following the if will only be called if the if function is truthy
+The if function needs to be synchronous.
+
+#### `.else()`
+
+Optionally an `else` method will cause any following methods to be called only if the prceeding if function is falsey
+
+#### `.endif()`
+
+This method is needed to close the if chain.
+Please see the tests for some examples.
+
 
 Here is an example with some mongodb queries:
 

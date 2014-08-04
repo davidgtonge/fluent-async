@@ -535,3 +535,176 @@ describe "max time option", ->
     .maxTime(100)
     .add({test2}, "test").log()
     .run(done)
+
+
+describe "conditionals api", ->
+  it "works with a simple if - truthy", (done) ->
+    shouldRunCalled = false
+
+    ifFn = (a) ->
+      a is 123
+    shouldRun = (a) ->
+      shouldRunCalled = true
+
+    finish = ->
+      ok shouldRunCalled
+      done()
+
+    fluent.create({test:123})
+    .strict()
+    .if(ifFn, "test")
+      .sync({shouldRun}, "test")
+    .endif()
+    .run(finish)
+
+  it "works with a simple if - falsey", (done) ->
+    shouldRunCalled = false
+
+    ifFn = (a) ->
+      a isnt 123
+    shouldRun =  ->
+      shouldRunCalled = true
+
+    finish = ->
+      ok not shouldRunCalled
+      done()
+
+    fluent.create({test:123})
+    .strict()
+    .if(ifFn, "test")
+    .sync({shouldRun}, "test")
+    .endif()
+    .run(finish)
+
+  it "works with a if and else", (done) ->
+    shouldRunCalled = false
+    shouldntRunCalled = false
+
+    ifFn = (a) ->
+      a is 123
+    shouldRun =  -> shouldRunCalled = true
+    shouldntRun =  -> shouldntRunCalled = true
+
+    finish = ->
+      ok shouldRunCalled
+      ok not shouldntRunCalled
+      done()
+
+    fluent.create({test:123})
+    .strict()
+    .if(ifFn, "test")
+      .sync({shouldRun}, "test")
+    .else()
+      .sync({shouldntRun}, "test")
+    .endif()
+    .run(finish)
+
+  it "works with a if and else - reverse", (done) ->
+    shouldRunCalled = false
+    shouldntRunCalled = false
+
+    ifFn = (a) ->
+      a isnt 123
+    shouldRun =  -> shouldRunCalled = true
+    shouldntRun =  -> shouldntRunCalled = true
+
+    finish = ->
+      ok not shouldRunCalled
+      ok shouldntRunCalled
+      done()
+
+    fluent.create({test:123})
+    .strict()
+    .if(ifFn, "test")
+      .sync({shouldRun}, "test")
+    .else()
+      .sync({shouldntRun}, "test")
+    .endif()
+    .run(finish)
+
+  it "throws an error with invalid else", ->
+    ( -> fluent.create({test:123}).strict().else()).should.throw()
+
+  it "throws an error with invalid endif", ->
+    ( -> fluent.create({test:123}).strict().endif()).should.throw()
+
+  it "throws an error with invalid double endif", ->
+    a = ->
+    ( -> fluent.create({test:123}).if(a).endif().endif()).should.throw()
+
+  it "throws an error with invalid double else", ->
+    a = ->
+    ( -> fluent.create({test:123}).if(a).else().else()).should.throw()
+
+  it "allows nesting", (done) ->
+    truthy = -> true
+    falsey = -> false
+    finish = (err, opts) ->
+      ok opts.a
+      ok not opts.b
+      ok not opts.c
+      done(err)
+
+    chain = ->
+      fluent.create({test:123})
+      .if(truthy)
+      .sync("a", truthy)
+      .else()
+        .if(truthy)
+          .sync("b", truthy)
+        .else()
+          .sync("c", truthy)
+        .endif()
+      .endif()
+      .run(finish)
+
+    chain.should.not.throw()
+
+  it "allows nesting - 2", (done) ->
+    truthy = -> true
+    falsey = -> false
+    finish = (err, opts) ->
+      ok not opts.a
+      ok opts.b
+      ok not opts.c
+      done(err)
+
+    chain = ->
+      fluent.create({test:123})
+      .if(falsey)
+        .sync("a", truthy)
+      .else()
+        .if(truthy)
+          .sync("b", truthy)
+        .else()
+          .sync("c", truthy)
+        .endif()
+      .endif()
+      .run(finish)
+
+    chain.should.not.throw()
+
+  it "allows nesting - 3", (done) ->
+    truthy = -> true
+    falsey = -> false
+    finish = (err, opts) ->
+      ok not opts.a
+      ok not opts.b
+      ok opts.c
+      done(err)
+
+    chain = ->
+      fluent.create({test:123})
+      .if(falsey)
+        .sync("a", truthy)
+      .else()
+        .if(falsey)
+          .sync("b", truthy)
+        .else()
+          .sync("c", truthy)
+        .endif()
+      .endif()
+      .run(finish)
+
+    chain.should.not.throw()
+

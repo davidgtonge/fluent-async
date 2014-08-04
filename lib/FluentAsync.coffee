@@ -1,6 +1,5 @@
 async = require "async"
 _ = require "underscore"
-domain = require "domain"
 once = require "./once"
 makeAsync = require "./makeAsync"
 debug = require("debug")("fluent")
@@ -99,12 +98,49 @@ normalizeAddArgs = (name, fn, depends) ->
   depends = _.flatten depends
   [name, fn, depends]
 
+createWrapper = (type) ->
+  (ifFn, tempIfDepends, logger) ->
+    unless _.isFunction(ifFn)
+      ifFn = _.values(ifFn)[0]
+    wrapper = (name, fn, depends) ->
+      ifDepends = []
+      duplicateDeps = []
+      for dep, index in tempIfDepends
+        if dep in depends
+          argIndex = _.indexOf(depends, dep)
+          duplicateDeps.push {index, argIndex}
+        else
+          ifDepends.push(dep)
+
+      depends = ifDepends.concat(depends)
+
+      wrappedFn = (args...) ->
+        ifArgs = args.slice 0, ifDepends.length
+        originalArgs = args.slice ifDepends.length
+        for {argIndex, index} in duplicateDeps
+          ifArgs.splice(index, 0, originalArgs[argIndex])
+
+        ifResult = ifFn.apply this, ifArgs
+        if (type is "if" and ifResult) or (type is "else" and not ifResult)
+          fn.apply this, originalArgs
+        else
+          logger("Skipping #{name} due to #{type}")
+          _.last(originalArgs).call this, null, false
+      console.log fn._length, fn.length
+      wrappedFn._length = (fn._length ? fn.length) + ifDepends.length
+      [name, wrappedFn, depends]
+    if type is "if" then elseWrapper = createWrapper("else")(ifFn, tempIfDepends, logger)
+    {wrapper, type, elseWrapper}
+
+createIfWrapper = createWrapper("if")
+
 
 module.exports = class FluentAsync
 
   constructor: (initial = {}) ->
     @opts = {}
     @waiting = []
+    @_conditionals = []
     @_log = debug
     for key, val of initial
       @data key, val
@@ -112,6 +148,32 @@ module.exports = class FluentAsync
   name: (@_name) ->
     @_log = require("debug")("fluent:#{@_name}")
     this
+
+  "if": (fn, depends...) ->
+    @_conditionals.push createIfWrapper(fn, depends, @_log)
+    this
+
+
+  "else": ->
+    if @_conditionals.length
+      if _.last(@_conditionals).type is "else"
+        throw new Error "Can't call else after another else - be sure to call endif"
+      else
+        {elseWrapper} = @_conditionals.pop()
+        @_conditionals.push elseWrapper
+
+    else
+     throw new Error "Can't call else without a preceeding if"
+    this
+
+  endif: ->
+    if @_conditionals.length
+      @_conditionals.pop()
+    # clear last fn from stack
+    else
+      throw new Error "Can't call endif without a preceeding if"
+    this
+
 
   strict: ->
     @isStrict = true
@@ -132,6 +194,8 @@ module.exports = class FluentAsync
     @_add.apply @, normalizeAddArgs(name, fn, depends)
 
   _add: (name, fn, depends) ->
+    for {wrapper} in @_conditionals
+      [name, fn, depends] = wrapper(name, fn, depends)
     fn = nodify @isStrict, fn, depends, @delay, name, @_log
     if depends.length or @waiting.length
       deps = _.union depends, @waiting
@@ -169,6 +233,7 @@ module.exports = class FluentAsync
     @_add.apply @, args
 
   run: (callback, depends...) ->
+    if @_conditionals.length then callback new Error("If statements not closed")
     callback ?= ->
     handleResults = processResults(@isStrict)
     handleOpts = parseOpts(@isStrict)
@@ -202,4 +267,3 @@ module.exports = class FluentAsync
 FluentAsync::results = FluentAsync::output
 FluentAsync::sync = FluentAsync::addSync
 FluentAsync::then = FluentAsync::async = FluentAsync::add
-
