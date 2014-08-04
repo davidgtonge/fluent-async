@@ -245,10 +245,9 @@ getUser = (projection, id) ->
     db.users.findById id, projection, callback
 
 
-getFriends = (user, projection, callback) ->
-  (projection) ->
-    (callback, results) ->
-      db.users.findItems {email:$in:results.getUser.profile.friends}, projection, callback
+getFriends = (projection) ->
+  (callback, results) ->
+    db.users.findItems {email:$in:results.getUser.profile.friends}, projection, callback
 
 getMessages = (callback, results) ->
   db.messages.findItems {userId:results.getUser._id}, callback
