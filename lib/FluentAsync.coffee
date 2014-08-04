@@ -126,7 +126,6 @@ createWrapper = (type) ->
         else
           logger("Skipping #{name} due to #{type}")
           _.last(originalArgs).call this, null, false
-      console.log fn._length, fn.length
       wrappedFn._length = (fn._length ? fn.length) + ifDepends.length
       [name, wrappedFn, depends]
     if type is "if" then elseWrapper = createWrapper("else")(ifFn, tempIfDepends, logger)
