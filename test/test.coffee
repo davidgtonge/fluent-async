@@ -557,6 +557,24 @@ describe "conditionals api", ->
     .endif()
     .run(finish)
 
+  it "works with a simple if - truthy - boolean supplied", (done) ->
+    shouldRunCalled = false
+
+    shouldRun = (a) ->
+      shouldRunCalled = true
+
+    finish = ->
+      ok shouldRunCalled
+      done()
+
+    fluent.create({test:123})
+    .strict()
+    .if(true)
+    .sync({shouldRun}, "test")
+    .endif()
+    .run(finish)
+
+
   it "works with a simple if - falsey", (done) ->
     shouldRunCalled = false
 

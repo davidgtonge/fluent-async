@@ -162,11 +162,13 @@ This can be useful if a method doesn't depend on the data from another method, b
 if that method has been completed. Optionally dependencies can be supplied to this method. If none are supplied
 then we assume that all previous operations are dependencies.
 
-#### `.if(fn, depends...)`
+#### `.if(fnOrBoolean, depends...)`
 
 A conditional function can be passed into the chain via the `if` method.
 Any methods in the chain following the if will only be called if the if function is truthy
-The if function needs to be synchronous.
+
+The first argument can either be a function or a boolean.
+If it is a function then it must be synchronous.
 
 #### `.else()`
 

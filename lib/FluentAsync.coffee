@@ -99,9 +99,14 @@ normalizeAddArgs = (name, fn, depends) ->
   [name, fn, depends]
 
 createWrapper = (type) ->
-  (ifFn, tempIfDepends, logger) ->
-    unless _.isFunction(ifFn)
-      ifFn = _.values(ifFn)[0]
+  (tempIfFn, tempIfDepends, logger) ->
+    if _.isBoolean(tempIfFn)
+      ifFn = -> tempIfFn
+    else if _.isFunction(tempIfFn)
+      ifFn = tempIfFn
+    else
+      ifFn = _.values(tempIfFn)[0]
+
     wrapper = (name, fn, depends) ->
       ifDepends = []
       duplicateDeps = []
