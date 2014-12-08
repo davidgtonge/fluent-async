@@ -7,6 +7,17 @@ debug = require("debug")("fluent")
 functor = (val) ->
   (cb) -> cb(null, val)
 
+firstArg = (item) -> item.split(".")[0]
+
+getDependResult = (result, key) ->
+  if key.indexOf(".") isnt -1
+    keys = key.split(".")
+    for key in keys
+      if result then result = result[key]
+    result
+  else
+    result[key]
+
 processResultsLoose = (cb, err, res, depends) ->
   if depends.length
     args = (res[depend] for depend in depends)
@@ -20,7 +31,7 @@ processResultsStrict = (cb, err, res, depends) ->
   if depends.length
     args = [err]
     for depend in depends
-      val = res[depend]
+      val = getDependResult(res,depend)
       if val?
         args.push val
       else
@@ -43,7 +54,7 @@ nodifyStrict = (fn, depends, delay, name, logger) ->
   (callback, results) =>
     args = []
     for depend in depends
-      val = results[depend]
+      val = getDependResult(results,depend)
       if val?
         args.push(val)
       else
@@ -201,6 +212,7 @@ module.exports = class FluentAsync
     for {wrapper} in @_conditionals
       [name, fn, depends] = wrapper(name, fn, depends)
     fn = nodify @isStrict, fn, depends, @delay, name, @_log
+    depends = _.map depends, firstArg
     if depends.length or @waiting.length
       deps = _.union depends, @waiting
       deps.push fn

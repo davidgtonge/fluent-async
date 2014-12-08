@@ -26,7 +26,7 @@ describe "parses options", ->
     ( -> fluent.create().add( "name", (->))).should.not.throw()
 
   it "handles the optional dependancies", ->
-    ( -> fluent.create().add( "name",  (->), [1,2,3])).should.not.throw()
+    ( -> fluent.create().add( "name",  (->), ["1","2","3"])).should.not.throw()
 
   it "handles single object argument", ->
     ( -> fluent.create().add( "name": ->)).should.not.throw()
@@ -48,6 +48,45 @@ describe "works with data", ->
       cb()
     fluent.create({test:123})
     .add({test2}, "test")
+    .run(done)
+
+  it "correctly passes deep initial data as dependency when first arg is object", (done) ->
+    test2 = (num, cb) ->
+      cb.should.be.a.Function
+      num.should.equal(123)
+      cb()
+    fluent.create({test:{foo:123}}).strict()
+    .add({test2}, "test.foo")
+    .run(done)
+
+
+  it "correctly passes deep data from functions", (done) ->
+    test = -> foo:456
+
+    test2 = (num, cb) ->
+      cb.should.be.a.Function
+      num.should.equal(456)
+      cb()
+
+    fluent.create().strict()
+    .sync({test})
+    .add({test2}, "test.foo")
+    .run(done)
+
+  it "correctly passes really deep data from functions", (done) ->
+    test = ->
+      foo:
+        bar:
+          foo:456
+
+    test2 = (num, cb) ->
+      cb.should.be.a.Function
+      num.should.equal(456)
+      cb()
+
+    fluent.create().strict()
+    .sync({test})
+    .add({test2}, "test.foo.bar.foo")
     .run(done)
 
   it "correctly passes initial data as dependency when second arg is an array", (done) ->
