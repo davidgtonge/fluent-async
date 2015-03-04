@@ -1,6 +1,6 @@
 _ = require "underscore"
 
-module.exports = (fn, delay, name = "Fluent Async Function", logger) ->
+module.exports = (fn, delay, name = "Fluent Async Function", logger, showErrorPath) ->
   called = false
   timedOut = false
   if delay
@@ -22,10 +22,19 @@ module.exports = (fn, delay, name = "Fluent Async Function", logger) ->
     logger "Callback for #{name}"
     if err
       if err.message? and _.isString(err.message)
-        err.message = "at method #{name} in fluent chain: #{err.message}"
+        logMessage = "at method #{name} in fluent chain: #{err.message}"
       else if _.isString(err)
-        err = "Error: at method #{name} in fluent chain: #{err}"
-      logger(err.toString())
+        logMessage = "Error: at method #{name} in fluent chain: #{err}"
+      else
+        logMessage = err
+
+      if showErrorPath
+        if err.message?
+          err.message = logMessage
+        else
+          err = logMessage
+
+      logger(logMessage.toString())
       fn(err)
     else
       fn.apply this, arguments

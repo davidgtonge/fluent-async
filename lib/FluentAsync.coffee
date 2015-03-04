@@ -50,7 +50,7 @@ nodifyLoose = (fn, depends) ->
     args.push(callback)
     fn.apply this, args
 
-nodifyStrict = (fn, depends, delay, name, logger) ->
+nodifyStrict = (fn, depends, delay, name, logger, showErrorPath) ->
   (callback, results) =>
     args = []
     for depend in depends
@@ -61,7 +61,7 @@ nodifyStrict = (fn, depends, delay, name, logger) ->
         logger "Strict Mode - Missing result from #{depend}"
         return callback(new Error "Fluent: Strict Mode - Missing result from #{depend}")
 
-    args.push(once(callback, delay, name, logger))
+    args.push(once(callback, delay, name, logger, showErrorPath))
     len = fn._length ? fn.length
     if args.length isnt len
       logger("Inconsistent Arity: #{name} - #{args.length} supplied, #{len} expected")
@@ -71,9 +71,9 @@ nodifyStrict = (fn, depends, delay, name, logger) ->
     catch e
       callback(e)
 
-nodify = (strict, fn, depends, delay, name, logger) ->
+nodify = (strict, fn, depends, delay, name, logger, showErrorPath) ->
   if strict
-    nodifyStrict(fn, depends, delay, name, logger)
+    nodifyStrict(fn, depends, delay, name, logger, showErrorPath)
   else
     nodifyLoose(fn, depends)
 
@@ -152,11 +152,12 @@ createIfWrapper = createWrapper("if")
 
 module.exports = class FluentAsync
 
-  constructor: (initial = {}) ->
+  constructor: (initial = {}, showErrorPath) ->
     @opts = {}
     @waiting = []
     @_conditionals = []
     @_log = debug
+    @showErrorPath = showErrorPath
     for key, val of initial
       @data key, val
 
@@ -211,7 +212,7 @@ module.exports = class FluentAsync
   _add: (name, fn, depends) ->
     for {wrapper} in @_conditionals
       [name, fn, depends] = wrapper(name, fn, depends)
-    fn = nodify @isStrict, fn, depends, @delay, name, @_log
+    fn = nodify @isStrict, fn, depends, @delay, name, @_log, @showErrorPath
     depends = _.map depends, firstArg
     if depends.length or @waiting.length
       deps = _.union depends, @waiting

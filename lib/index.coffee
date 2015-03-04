@@ -5,12 +5,12 @@ _ = require "underscore"
 FluentAsync = require "./FluentAsync"
 FluentAsyncWithMocks = require "./FluentAsyncWithMocks"
 
-create = (data) ->
-  new FluentAsync data
+create = (data, showErrorPath = false) ->
+  new FluentAsync data, showErrorPath
 
 createWithMocks = (mocks) ->
-  (data) ->
-    instance = new FluentAsyncWithMocks data
+  (data, showErrorPath = false) ->
+    instance = new FluentAsyncWithMocks data, showErrorPath
     instance._mocks = mocks
     instance
 
